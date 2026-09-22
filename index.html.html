@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reham's 20th Birthday 🎂✨</title>
+    <!-- Google Fonts: خطوط فخمة وراقية -->
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: #ffffff;
+            color: #2d3748;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* شاشة العد التنازلي البداية */
+        #intro-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0b0f19;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .matrix-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            color: rgba(244, 63, 94, 0.22);
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.2;
+            user-select: none;
+            pointer-events: none;
+            word-break: break-all;
+            padding: 20px;
+            z-index: 1;
+            text-align: justify;
+        }
+
+        #countdown-number {
+            font-size: 140px;
+            font-weight: 800;
+            color: #ff69b4;
+            text-shadow: 0 0 25px rgba(255, 105, 180, 0.8), 0 0 50px rgba(244, 63, 94, 0.5);
+            z-index: 2;
+            animation: pulseGlow 0.9s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255,105,180,0.6)); }
+            100% { transform: scale(1.08); filter: drop-shadow(0 0 25px rgba(255,105,180,1)); }
+        }
+
+        /* محتوى الموقع الأساسي */
+        #main-content {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* قلوب الخلفية المتحركة */
+        @keyframes floatUp {
+            0% { transform: translateY(105vh) scale(0.6); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) scale(1.3); opacity: 0; }
+        }
+        .heart-float {
+            position: fixed;
+            color: rgba(244, 63, 94, 0.25);
+            animation: floatUp linear infinite;
+            z-index: 0;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* الكارت الرئيسي */
+        .card {
+            width: 100%;
+            max-width: 480px;
+            background: #ffffff;
+            border: 1px solid #fce7f3;
+            border-radius: 28px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(244, 63, 94, 0.08);
+            z-index: 10;
+            margin: auto;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .fancy-title {
+            font-family: 'Great Vibes', cursive;
+            font-size: 50px;
+            color: #e11d48;
+            margin-bottom: 5px;
+            line-height: 1.1;
+            text-shadow: 0 2px 10px rgba(225, 29, 72, 0.15);
+        }
+
+        .age-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+            color: #e11d48;
+            font-size: 20px;
+            font-weight: 800;
+            padding: 6px 20px;
+            border-radius: 20px;
+            border: 1px solid #fecdd3;
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.15);
+            margin-top: 10px;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .sub-date {
+            font-size: 13px;
+            color: #8896ab;
+            font-weight: 600;
+        }
+
+        /* نموذج الرسائل */
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1.5px solid #f1f5f9;
+            background: #f8fafc;
+            color: #1e293b;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #f43f5e;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.08);
+        }
+
+        textarea {
+            resize: none;
+            height: 90px;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(244, 63, 94, 0.25);
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .submit-btn:hover {
+            opacity: 0.95;
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* رسالة النجاح */
+        #successMessage {
+            display: none;
+            margin-top: 12px;
+            padding: 10px;
+            background: #fff1f2;
+            color: #e11d48;
+            border: 1px solid #fecdd3;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        /* قسم الرسائل المستلمة */
+        .messages-section {
+            margin-top: 25px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 20px;
+        }
+
+        .messages-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .count-badge {
+            background: #fff1f2;
+            color: #e11d48;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 50px;
+        }
+
+        #messagesList {
+            max-height: 160px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-right: 4px;
+        }
+
+        .msg-card {
+            background: #fdf2f4;
+            border: 1px solid #fce7f3;
+            padding: 12px 14px;
+            border-radius: 12px;
+        }
+
+        .msg-author {
+            font-size: 12px;
+            font-weight: 700;
+            color: #e11d48;
+            margin-bottom: 3px;
+        }
+
+        .msg-content {
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.4;
+        }
+
+        /* قسم الباركود المضمون */
+        .qrcode-section {
+            margin-top: 25px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 20px;
+            text-align: center;
+        }
+
+        .qrcode-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        #qrcode-container {
+            display: inline-block;
+            background: #fdf2f4;
+            padding: 10px;
+            border-radius: 16px;
+            border: 1px solid #fce7f3;
+        }
+
+        #qrcode-container img {
+            display: block;
+            width: 110px;
+            height: 110px;
+            border-radius: 8px;
+        }
+
+        /* التوقيع */
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            z-index: 10;
+        }
+
+        .designer-signature {
+            font-size: 13px;
+            font-weight: 700;
+            color: #e11d48;
+            background: #fff1f2;
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid #fecdd3;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.1);
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة البداية والعداد -->
+    <div id="intro-screen">
+        <div class="matrix-bg" id="matrixText"></div>
+        <div id="countdown-number">3</div>
+    </div>
+
+    <!-- محتوى الموقع الأساسي -->
+    <div id="main-content">
+        <div id="hearts-container"></div>
+
+        <main class="card">
+            <div class="header-section">
+                <h1 class="fancy-title">Happy Birthday to Me</h1>
+                <div class="age-badge">20 Years Old 💖</div>
+                <div class="sub-date">✨ September 24th ✨</div>
+            </div>
+
+            <!-- الكارت التفاعلي لإرسال الرسائل -->
+            <form id="messageForm">
+                <div class="form-group">
+                    <label>Your Name:</label>
+                    <input type="text" id="senderName" required placeholder="Enter your name...">
+                </div>
+
+                <div class="form-group">
+                    <label>Your Birthday Wish:</label>
+                    <textarea id="messageText" required placeholder="Write a sweet wish..."></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">Send Wish ❤️</button>
+                <div id="successMessage">لقد أرسلت بنجاح ❤️</div>
+            </form>
+
+            <!-- لوحة عرض الرسائل -->
+            <div class="messages-section">
+                <div class="messages-header">
+                    <span>💌 Friends' Wishes</span>
+                    <span id="msgCount" class="count-badge">0</span>
+                </div>
+                <div id="messagesList">
+                    <div class="msg-card">
+                        <div class="msg-author">Best Friend ✨</div>
+                        <div class="msg-content">Happy 20th Birthday Reham! Wishing you a brilliant software journey ahead! 🚀❤️</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- باركود مضمون 100% يولد صورة مباشرة للرابط -->
+            <div class="qrcode-section">
+                <div class="qrcode-title">📱 Scan to Open & Send Wish</div>
+                <div id="qrcode-container">
+                    <img id="qrImage" src="" alt="QR Code">
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="designer-signature">✨ Designed by Reham Hamada AbdelNasser ✨</div>
+        </footer>
+    </div>
+
+    <script>
+        // 1. توليد خلفية الحروف المتراصة
+        const chars = "REHAM20THBDAYSOFTWAREIT2006LOVE".split("");
+        let matrixStr = "";
+        for(let i=0; i<800; i++) {
+            matrixStr += chars[Math.floor(Math.random() * chars.length)] + " ";
+        }
+        document.getElementById('matrixText').textContent = matrixStr;
+
+        // 2. منطق العد التنازلي (3 -> 2 -> 1)
+        let count = 3;
+        const numElem = document.getElementById('countdown-number');
+        const introScreen = document.getElementById('intro-screen');
+        const mainContent = document.getElementById('main-content');
+
+        const timer = setInterval(() => {
+            count--;
+            if (count > 0) {
+                numElem.textContent = count;
+            } else {
+                clearInterval(timer);
+                introScreen.style.opacity = '0';
+                introScreen.style.transition = 'opacity 0.6s ease';
+                setTimeout(() => {
+                    introScreen.style.display = 'none';
+                    mainContent.style.display = 'flex';
+                    // تشغيل احتفال البداية
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
+                }, 600);
+            }
+        }, 1000);
+
+        // 3. توليد الباركود فوراً بطريقة مضمونة 100% باستخدام QR Server API
+        const currentUrl = window.location.href;
+        const qrImg = document.getElementById('qrImage');
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(currentUrl)}`;
+
+        // 4. قلوب الخلفية المتحركة
+        function createHeart() {
+            const container = document.getElementById('hearts-container');
+            if(!container) return;
+            const heart = document.createElement('div');
+            heart.classList.add('heart-float');
+            heart.innerHTML = '❤️';
+            heart.style.left = Math.random() * 95 + 'vw';
+            heart.style.fontSize = (Math.random() * 8 + 14) + 'px';
+            heart.style.animationDuration = (Math.random() * 3 + 4) + 's';
+            container.appendChild(heart);
+            setTimeout(() => heart.remove(), 7000);
+        }
+        setInterval(createHeart, 500);
+
+        // 5. ربط قاعدة البيانات السحابية (Firebase) للرسائل
+        const firebaseConfig = {
+            databaseURL: "https://reham-birthday-default-rtdb.firebaseio.com/"
+        };
+        
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+        } catch (e) {
+            console.log("Firebase init:", e);
+        }
+
+        const db = firebase.database();
+        const messagesRef = db ? db.ref('messages') : null;
+
+        const form = document.getElementById('messageForm');
+        const nameInput = document.getElementById('senderName');
+        const textInput = document.getElementById('messageText');
+        const messagesList = document.getElementById('messagesList');
+        const msgCount = document.getElementById('msgCount');
+        const successMessage = document.getElementById('successMessage');
+
+        if (messagesRef) {
+            messagesRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                messagesList.innerHTML = "";
+                let countMsgs = 0;
+
+                if (data) {
+                    const messagesArray = Object.values(data).reverse();
+                    countMsgs = messagesArray.length;
+                    
+                    messagesArray.forEach((msg) => {
+                        const card = document.createElement('div');
+                        card.className = "msg-card";
+                        card.innerHTML = `
+                            <div class="msg-author">${escapeHTML(msg.name)}</div>
+                            <div class="msg-content">${escapeHTML(msg.text)}</div>
+                        `;
+                        messagesList.appendChild(card);
+                    });
+                }
+                msgCount.textContent = countMsgs;
+            });
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = nameInput.value.trim();
+            const text = textInput.value.trim();
+
+            if (!name || !text) return;
+
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            const newMessage = { name, text };
+            if (messagesRef) {
+                messagesRef.push(newMessage);
+            }
+
+            nameInput.value = '';
+            textInput.value = '';
+
+            // إظهار رسالة النجاح
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 4000);
+        });
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
