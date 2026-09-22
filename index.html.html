@@ -399,139 +399,68 @@
         </footer>
     </div>
 
-    <script>
-        // 1. توليد خلفية الحروف المتراصة
-        const chars = "REHAM20THBDAYSOFTWAREIT2006LOVE".split("");
-        let matrixStr = "";
-        for(let i=0; i<800; i++) {
-            matrixStr += chars[Math.floor(Math.random() * chars.length)] + " ";
-        }
-        document.getElementById('matrixText').textContent = matrixStr;
+   <script type="module">
+  // 1. استيراد مكتبات فايربيس
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // 2. منطق العد التنازلي (3 -> 2 -> 1)
-        let count = 3;
-        const numElem = document.getElementById('countdown-number');
-        const introScreen = document.getElementById('intro-screen');
-        const mainContent = document.getElementById('main-content');
+  // 2. إعدادات مشروعك
+  const firebaseConfig = {
+    apiKey: "AIzaSyCioy8XXoaj9nXL4uNWeRTPfmEGcf10zfc",
+    authDomain: "reham-birthday.firebaseapp.com",
+    databaseURL: "https://reham-birthday-default-rtdb.firebaseio.com",
+    projectId: "reham-birthday",
+    storageBucket: "reham-birthday.firebasestorage.app",
+    messagingSenderId: "34157547744",
+    appId: "1:34157547744:web:02e674e609933c5d818085",
+    measurementId: "G-6NS39JE9WN"
+  };
 
-        const timer = setInterval(() => {
-            count--;
-            if (count > 0) {
-                numElem.textContent = count;
-            } else {
-                clearInterval(timer);
-                introScreen.style.opacity = '0';
-                introScreen.style.transition = 'opacity 0.6s ease';
-                setTimeout(() => {
-                    introScreen.style.display = 'none';
-                    mainContent.style.display = 'flex';
-                    // تشغيل احتفال البداية
-                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
-                }, 600);
-            }
-        }, 1000);
+  // 3. تشغيل الاتصال
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-        // 3. توليد الباركود فوراً بطريقة مضمونة 100% باستخدام QR Server API
-        const currentUrl = window.location.href;
-        const qrImg = document.getElementById('qrImage');
-        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(currentUrl)}`;
+  // دالة لحماية النصوص
+  function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, 
+      tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
+    );
+  }
 
-        // 4. قلوب الخلفية المتحركة
-        function createHeart() {
-            const container = document.getElementById('hearts-container');
-            if(!container) return;
-            const heart = document.createElement('div');
-            heart.classList.add('heart-float');
-            heart.innerHTML = '❤️';
-            heart.style.left = Math.random() * 95 + 'vw';
-            heart.style.fontSize = (Math.random() * 8 + 14) + 'px';
-            heart.style.animationDuration = (Math.random() * 3 + 4) + 's';
-            container.appendChild(heart);
-            setTimeout(() => heart.remove(), 7000);
-        }
-        setInterval(createHeart, 500);
+  // 4. ربط الفورم بقاعدة البيانات (افترضي إن الـ Form عندك اسمه messageForm والـ Inputs اسمها senderName و messageText)
+  const messageForm = document.getElementById("messageForm");
+  if (messageForm) {
+    messageForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      
+      const nameInput = document.getElementById("senderName").value;
+      const textInput = document.getElementById("messageText").value;
 
-        // 5. ربط قاعدة البيانات السحابية (Firebase) للرسائل
-        const firebaseConfig = {
-            databaseURL: "https://reham-birthday-default-rtdb.firebaseio.com/"
-        };
-        
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-        } catch (e) {
-            console.log("Firebase init:", e);
-        }
+      // إرسال البيانات لقاعدة البيانات
+      push(ref(db, "messages"), {
+        name: escapeHTML(nameInput),
+        text: escapeHTML(textInput),
+        timestamp: Date.now()
+      }).then(() => {
+        messageForm.reset(); // تفريغ الحقول بعد الإرسال
+        alert("تم ارسال رسالتك بنجاح! 🎂🎉");
+      }).catch((error) => {
+        console.error("Error sending message: ", error);
+      });
+    });
+  }
 
-        const db = firebase.database();
-        const messagesRef = db ? db.ref('messages') : null;
-
-        const form = document.getElementById('messageForm');
-        const nameInput = document.getElementById('senderName');
-        const textInput = document.getElementById('messageText');
-        const messagesList = document.getElementById('messagesList');
-        const msgCount = document.getElementById('msgCount');
-        const successMessage = document.getElementById('successMessage');
-
-        if (messagesRef) {
-            messagesRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                messagesList.innerHTML = "";
-                let countMsgs = 0;
-
-                if (data) {
-                    const messagesArray = Object.values(data).reverse();
-                    countMsgs = messagesArray.length;
-                    
-                    messagesArray.forEach((msg) => {
-                        const card = document.createElement('div');
-                        card.className = "msg-card";
-                        card.innerHTML = `
-                            <div class="msg-author">${escapeHTML(msg.name)}</div>
-                            <div class="msg-content">${escapeHTML(msg.text)}</div>
-                        `;
-                        messagesList.appendChild(card);
-                    });
-                }
-                msgCount.textContent = countMsgs;
-            });
-        }
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = nameInput.value.trim();
-            const text = textInput.value.trim();
-
-            if (!name || !text) return;
-
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
-
-            const newMessage = { name, text };
-            if (messagesRef) {
-                messagesRef.push(newMessage);
-            }
-
-            nameInput.value = '';
-            textInput.value = '';
-
-            // إظهار رسالة النجاح
-            successMessage.style.display = 'block';
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 4000);
-        });
-
-        function escapeHTML(str) {
-            if (!str) return '';
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
-        }
-    </script>
+  // 5. جلب وعرض الرسائل لحظياً
+  const messagesContainer = document.getElementById("messagesContainer");
+  if (messagesContainer) {
+    onChildAdded(ref(db, "messages"), (snapshot) => {
+      const data = snapshot.val();
+      const messageElement = document.createElement("div");
+      messageElement.className = "message-card"; // تقدر تنسقيها بالـ CSS براحتك
+      messageElement.innerHTML = `<strong>${data.name}</strong>: <p>${data.text}</p>`;
+      messagesContainer.appendChild(messageElement);
+    });
+  }
+</script>
 </body>
 </html>
